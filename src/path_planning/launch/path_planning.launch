@@ -1,0 +1,13 @@
+<launch>
+	
+	<node name="enable_robot" pkg="baxter_tools" type="enable_robot.py" output="screen" args="-e"/>
+
+	<node name="joint_trajectory_action_server" pkg="baxter_interface" type="joint_trajectory_action_server.py" output="screen"/>
+
+	<include file="$(find baxter_moveit_config)/launch/move_group.launch"/>
+	
+	<!--<node name="pose_planner" pkg="path_planning" type="path.py" output="screen"/>-->
+	
+
+	<!--<node name="run_planner" pkg="path_planning" type="run_planner.sh" output="screen"/>-->
+</launch>
