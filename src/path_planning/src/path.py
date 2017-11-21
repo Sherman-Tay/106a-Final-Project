@@ -4,7 +4,7 @@ import rospy
 import moveit_commander
 from moveit_msgs.msg import OrientationConstraint, Constraints
 from geometry_msgs.msg import PoseStamped
-from tf import TransformListener
+import tf
 # from tf2_msgs.msg import TFMessage
 # import time
 
@@ -39,7 +39,7 @@ def main():
     robot = moveit_commander.RobotCommander()
     scene = moveit_commander.PlanningSceneInterface()
 #    left_arm = moveit_commander.MoveGroupCommander('left_arm')
-    right_arm = moveit_commander.MoveGroupCommander('left_arm')
+    right_arm = moveit_commander.MoveGroupCommander('right_arm')
 #    left_arm.set_planner_id('RRTConnectkConfigDefault')
 #    left_arm.set_planning_time(10)
     right_arm.set_planner_id('RRTstarkConfigDefault')
@@ -55,15 +55,45 @@ def main():
             break
 
         try:
-            wrt_frame = '/base'
+            wrt_frame = 'base'
             targetMarker = 'ar_marker_'+str(booknum)
-            if tf_listener.frameExists(wrt_frame) and tf_listener.frameExists(targetMarker)
+            if tf_listener.frameExists(wrt_frame) and tf_listener.frameExists(targetMarker):
                 last_seen = tf_listener.getLatestCommonTime(wrt_frame,targetMarker)
-                book_pos, book_quat = tf_listener.lookupTransform(wrt_frame,targetMarker,last_seen)
+                book_pos, book_quat = tf_listener.lookupTransform(targetMarker,wrt_frame,last_seen)
                 print book_pos, book_quat
+
+                #First goal pose ------------------------------------------------------
+                goal = PoseStamped()
+                goal.header.frame_id = "base"
+
+                #x, y, and z position
+                goal.pose.position.x = book_pos[0]
+                goal.pose.position.y = book_pos[1]
+                goal.pose.position.z = book_pos[2]+1
+    
+                #Orientation as a quaternion
+                goal.pose.orientation.x = book_quat[0]
+                goal.pose.orientation.y = book_quat[0]
+                goal.pose.orientation.z = book_quat[0]
+                goal.pose.orientation.w = book_quat[0]
+
+                #Set the goal state to the pose you just defined
+                right_arm.set_pose_target(goal)
+
+                #Set the start state for the right arm
+                right_arm.set_start_state_to_current_state()
+
+                #Plan a path
+                right_plan = right_arm.plan()
+
+                #Execute the plan
+                raw_input('Press <Enter> to move the right arm to goal pose 1 (path constraints are never enforced during this motion): ')
+                right_arm.execute(right_plan)
         except KeyboardInterrupt:
             print 'Keyboard Interrupt, exiting'
             break
+
+            
 
     # #First goal pose ------------------------------------------------------
     # goal_1 = PoseStamped()
