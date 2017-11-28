@@ -59,26 +59,26 @@ def main():
             targetMarker = 'ar_marker_'+str(booknum)
             if tf_listener.frameExists(wrt_frame) and tf_listener.frameExists(targetMarker):
                 last_seen = tf_listener.getLatestCommonTime(wrt_frame,targetMarker)
-                book_pos, book_quat = tf_listener.lookupTransform(targetMarker,wrt_frame,last_seen)
+                book_pos, book_quat = tf_listener.lookupTransform(wrt_frame,targetMarker,last_seen)
                 print book_pos, book_quat
 
                 #First goal pose ------------------------------------------------------
-                goal = PoseStamped()
-                goal.header.frame_id = "base"
+                goal1 = PoseStamped()
+                goal1.header.frame_id = "base"
 
                 #x, y, and z position
-                goal.pose.position.x = book_pos[0]
-                goal.pose.position.y = book_pos[1]
-                goal.pose.position.z = book_pos[2]+1
+                goal1.pose.position.x = book_pos[0]
+                goal1.pose.position.y = book_pos[1]
+                goal1.pose.position.z = book_pos[2]+0.1  # add a close safety distance in [m]
     
                 #Orientation as a quaternion
-                goal.pose.orientation.x = book_quat[0]
-                goal.pose.orientation.y = book_quat[0]
-                goal.pose.orientation.z = book_quat[0]
-                goal.pose.orientation.w = book_quat[0]
+                goal1.pose.orientation.x = book_quat[0]
+                goal1.pose.orientation.y = book_quat[1]
+                goal1.pose.orientation.z = book_quat[2]
+                goal1.pose.orientation.w = book_quat[3]
 
                 #Set the goal state to the pose you just defined
-                right_arm.set_pose_target(goal)
+                right_arm.set_pose_target(goal1)
 
                 #Set the start state for the right arm
                 right_arm.set_start_state_to_current_state()
@@ -89,6 +89,48 @@ def main():
                 #Execute the plan
                 raw_input('Press <Enter> to move the right arm to goal pose 1 (path constraints are never enforced during this motion): ')
                 right_arm.execute(right_plan)
+
+                # Move towards the book respecting constraints on the movement
+                goal2 = PoseStamped()
+                goal2.header.frame_id = "base"
+
+                #x, y, and z position
+                goal2.pose.position.x = book_pos[0]
+                goal2.pose.position.y = book_pos[1]
+                goal2.pose.position.z = book_pos[2]
+    
+                #Orientation as a quaternion
+                goal2.pose.orientation.x = book_quat[0]
+                goal2.pose.orientation.y = book_quat[1]
+                goal2.pose.orientation.z = book_quat[2]
+                goal2.pose.orientation.w = book_quat[3]
+
+                #Set the goal state to the pose you just defined
+                right_arm.set_pose_target(goal2)
+
+                #Set the start state for the right arm
+                right_arm.set_start_state_to_current_state()
+
+                orien_const = OrientationConstraint()
+                orien_const.link_name = "right_gripper";
+                orien_const.header.frame_id = targetMarker;
+                orien_const.orientation.z = -1.0;
+                orien_const.absolute_x_axis_tolerance = 0.1;
+                orien_const.absolute_y_axis_tolerance = 0.1;
+                orien_const.absolute_z_axis_tolerance = 0.1;
+                orien_const.weight = 1.0;
+                consts = Constraints()
+                consts.orientation_constraints = [orien_const]
+                right_arm.set_path_constraints(consts)
+
+                #Plan a path
+                right_plan = right_arm.plan()
+
+                #Execute the plan
+                raw_input('Press <Enter> to move the right arm to goal pose 2: ')
+                right_arm.execute(right_plan)
+            else:
+                print 'The requested AR Tag has not been found.'
         except KeyboardInterrupt:
             print 'Keyboard Interrupt, exiting'
             break
