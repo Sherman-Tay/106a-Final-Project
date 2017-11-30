@@ -16,7 +16,7 @@ right_gripper.set_vacuum_threshold(threshold=2)
 
 #Initiates suction on the right gripper, setting timeout to an arbitrar
 print('Suction Activated...')
-right_gripper.command_suction(timeout=10.0)
+right_gripper.command_suction()
 rospy.sleep(5.0)
 
 

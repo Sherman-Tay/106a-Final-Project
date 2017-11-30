@@ -5,6 +5,9 @@ import moveit_commander
 from moveit_msgs.msg import OrientationConstraint, Constraints
 from geometry_msgs.msg import PoseStamped
 import tf
+import numpy as np
+from baxter_interface import gripper as robot_gripper
+from baxter_interface import settings
 # from tf2_msgs.msg import TFMessage
 # import time
 
@@ -34,6 +37,8 @@ def main():
 
     #Start a node
     rospy.init_node('moveit_node')
+    #rospy.init_node('gripper')
+    #rospy.sleep(1.0)
 
     #Initialize both arms
     robot = moveit_commander.RobotCommander()
@@ -43,7 +48,7 @@ def main():
 #    left_arm.set_planner_id('RRTConnectkConfigDefault')
 #    left_arm.set_planning_time(10)
     right_arm.set_planner_id('RRTstarkConfigDefault')
-    right_arm.set_planning_time(10)
+    right_arm.set_planning_time(15)
 
 
     while not rospy.is_shutdown():
@@ -67,15 +72,28 @@ def main():
                 goal1.header.frame_id = "base"
 
                 #x, y, and z position
-                goal1.pose.position.x = book_pos[0]
-                goal1.pose.position.y = book_pos[1]
-                goal1.pose.position.z = book_pos[2]+0.1  # add a close safety distance in [m]
-    
+                goal1_pos = book_pos + qv_mult(book_quat, np.array([0,0,0.1,1]))
+                goal1.pose.position.x = goal1_pos[0]
+                goal1.pose.position.y = goal1_pos[1]
+                goal1.pose.position.z = goal1_pos[2]
+
                 #Orientation as a quaternion
-                goal1.pose.orientation.x = book_quat[0]
-                goal1.pose.orientation.y = book_quat[1]
-                goal1.pose.orientation.z = book_quat[2]
-                goal1.pose.orientation.w = book_quat[3]
+                # Rotate the previous pose by 180* about Y
+                r=0
+                p=np.pi
+                y=0
+                q_rot = tf.transformations.quaternion_from_euler(r, p, y)
+                q_gripper = book_quat
+                   
+                q_gripper = tf.transformations.quaternion_multiply(q_gripper,q_rot)  # Calculate the new orientation
+                #print q_gripper, q_rot
+
+                #raw_input('Enter book number corresponding with the book you want to pick:')
+
+                goal1.pose.orientation.x = q_gripper[0]
+                goal1.pose.orientation.y = q_gripper[1]
+                goal1.pose.orientation.z = q_gripper[2]
+                goal1.pose.orientation.w = q_gripper[3]
 
                 #Set the goal state to the pose you just defined
                 right_arm.set_pose_target(goal1)
@@ -95,15 +113,16 @@ def main():
                 goal2.header.frame_id = "base"
 
                 #x, y, and z position
-                goal2.pose.position.x = book_pos[0]
-                goal2.pose.position.y = book_pos[1]
-                goal2.pose.position.z = book_pos[2]
+                goal2_pos = book_pos + qv_mult(book_quat, np.array([0,0,0.03,1]))
+                goal2.pose.position.x = goal2_pos[0]
+                goal2.pose.position.y = goal2_pos[1]
+                goal2.pose.position.z = goal2_pos[2]
     
                 #Orientation as a quaternion
-                goal2.pose.orientation.x = book_quat[0]
-                goal2.pose.orientation.y = book_quat[1]
-                goal2.pose.orientation.z = book_quat[2]
-                goal2.pose.orientation.w = book_quat[3]
+                goal2.pose.orientation.x = q_gripper[0]
+                goal2.pose.orientation.y = q_gripper[1]
+                goal2.pose.orientation.z = q_gripper[2]
+                goal2.pose.orientation.w = q_gripper[3]
 
                 #Set the goal state to the pose you just defined
                 right_arm.set_pose_target(goal2)
@@ -111,24 +130,47 @@ def main():
                 #Set the start state for the right arm
                 right_arm.set_start_state_to_current_state()
 
-                orien_const = OrientationConstraint()
-                orien_const.link_name = "right_gripper";
-                orien_const.header.frame_id = targetMarker;
-                orien_const.orientation.z = -1.0;
-                orien_const.absolute_x_axis_tolerance = 0.1;
-                orien_const.absolute_y_axis_tolerance = 0.1;
-                orien_const.absolute_z_axis_tolerance = 0.1;
-                orien_const.weight = 1.0;
-                consts = Constraints()
-                consts.orientation_constraints = [orien_const]
-                right_arm.set_path_constraints(consts)
-
+                #orien_const = OrientationConstraint()
+                #orien_const.link_name = "right_gripper";
+                #orien_const.header.frame_id = targetMarker;
+                #orien_const.orientation.z = -1.0;
+                #orien_const.absolute_x_axis_tolerance = 0.01;
+                #orien_const.absolute_y_axis_tolerance = 0.01;
+                #orien_const.absolute_z_axis_tolerance = 0.01;
+                #orien_const.weight = 1.0;
+                #consts = Constraints()
+                #consts.orientation_constraints = [orien_const]
+                #right_arm.set_path_constraints(consts)
+                rospy.sleep(2)
                 #Plan a path
                 right_plan = right_arm.plan()
 
                 #Execute the plan
                 raw_input('Press <Enter> to move the right arm to goal pose 2: ')
+                
                 right_arm.execute(right_plan)
+
+                # Activate the GRIPPER
+                #Set up the right gripper
+                right_gripper = robot_gripper.Gripper('right')
+
+                #sets vacuum threshold at 15 out of 18
+                print('Setting vacuum threshold to 2/18')
+                right_gripper.set_vacuum_threshold(threshold=2)
+
+                #Initiates suction on the right gripper, setting timeout to an arbitrar
+                print('Suction Activated...')
+                right_gripper.command_suction(timeout=100.0)
+                rospy.sleep(5.0)
+
+
+
+                #Ceases suction on the right gripper
+                print('Suction Deactivated...')
+                right_gripper.stop()
+                rospy.sleep(1.0)
+                print('Done with cycle')
+
             else:
                 print 'The requested AR Tag has not been found.'
         except KeyboardInterrupt:
@@ -251,6 +293,9 @@ def main():
     # #Execute the plan
     # raw_input('Press <Enter> to move the right arm to goal pose 3: ')
     # right_arm.execute(right_plan)
+
+def qv_mult(q1, v1):
+    return np.dot(tf.transformations.quaternion_matrix(q1),v1)[:3]
 
 if __name__ == '__main__':
     main()
