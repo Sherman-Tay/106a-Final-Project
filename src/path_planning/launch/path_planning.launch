@@ -5,6 +5,8 @@
 	<node name="joint_trajectory_action_server" pkg="baxter_interface" type="joint_trajectory_action_server.py" output="screen"/>
 
 	<include file="$(find baxter_moveit_config)/launch/move_group.launch"/>
+
+	<include file="$(find ar_track_alvar)/launch/webcam_track.launch" />
 	
 	<!--<node name="pose_planner" pkg="path_planning" type="path.py" output="screen"/>-->
 	

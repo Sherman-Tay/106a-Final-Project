@@ -10,9 +10,9 @@ rospy.sleep(1.0)
 #Set up the right gripper
 right_gripper = robot_gripper.Gripper('right')
 
-#sets vacuum threshold at 15 out of 18
-print('Setting vacuum threshold to 2/18')
-right_gripper.set_vacuum_threshold(threshold=2)
+#sets vacuum threshold at 10 out of 18
+print('Setting vacuum threshold to 10/18')
+right_gripper.set_vacuum_threshold(threshold=10)
 
 #Initiates suction on the right gripper, setting timeout to an arbitrar
 print('Suction Activated...')
