@@ -1,4 +1,5 @@
 <launch>
+
   <include file="$(find camera)/launch/run_cam.launch" />
 
   <arg name="marker_size" default="5.6" />
@@ -13,10 +14,5 @@
 
   <node name="ar_track_alvar" pkg="ar_track_alvar" type="individualMarkersNoKinect" respawn="false" output="screen" args="$(arg marker_size) $(arg max_new_marker_error) $(arg max_track_error) $(arg cam_image_topic) $(arg cam_info_topic) $(arg output_frame) $(arg max_frequency) $(arg marker_resolution) $(arg marker_margin)" />
 
-  <!--
-  <node name="rob_st_pub" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen">
-    <remap from="joint_states" to="robot/joint_states" />
-  </node>
-  -->
 </launch>
 

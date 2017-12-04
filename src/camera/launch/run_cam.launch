@@ -2,20 +2,4 @@
 	
 	<node name="Open_close_cameras" pkg="camera" type="opcl_cameras.sh" output="screen"/>
 
-	<!--<node name="head_cam_correct_axes" pkg="camera" type="headsub.py" output="screen" args="ar_marker_8" />-->
-
-	<!--
-	<node name="image_view_left" pkg="image_view" type="image_view" respawn="false" output="screen">
-		<remap from="image" to="/cameras/left_hand_camera/image" />
-		<param name="autosize" value="true" />
-	</node>
-
-	<node name="image_view_head" pkg="image_view" type="image_view" respawn="false" output="screen">
-		<remap from="image" to="/cameras/head_camera/image" />
-		<param name="autosize" value="true" />
-	</node>
-	-->
-
-	
-	
 </launch>
